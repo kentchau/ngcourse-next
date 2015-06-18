@@ -5,8 +5,9 @@ import {TaskEditCtrl} from 'sections/task-edit/task-edit-controller';
 import {TaskAddCtrl} from 'sections/task-add/task-add-controller';
 import {TasksService} from 'core/tasks/tasks-service';
 import {UsersService} from 'core/users/users-service';
-import {AuthenticatorComponent} from 'components/authenticator/authenticator-component';
+import {ServerService} from 'core/server/server-service';
 import {configureRouter, RouterService} from 'core/router/router-service';
+import {AuthenticatorComponent} from 'components/authenticator/authenticator-component';
 import {LoginFormComponent} from 'components/login-form/login-form-component';
 declare var angular: any;
 
@@ -28,17 +29,13 @@ angular.module('ngcourse', [
 
 angular.module('ngcourse')
 
-
 .directive('ngcLoginForm', LoginFormComponent)
+.directive('ngcAuthenticator', AuthenticatorComponent)
 
 .controller('TaskListCtrl', TaskListCtrl)
 .controller('TaskEditCtrl', TaskEditCtrl)
 .controller('TaskAddCtrl', TaskAddCtrl)
 
-.controller('LoginFormCtrl', function() { })
-.directive('ngcAuthenticator', AuthenticatorComponent)
-
-// .constant('API_BASE_URL', 'http://localhost:7000')
 .constant('API_BASE_URL', 'http://ngcourse.herokuapp.com')
 
 .run(function ($log, koast, API_BASE_URL) {
