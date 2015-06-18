@@ -102,9 +102,9 @@ gulp.task('build', function () {
         noImplicitAny: false
       })
       .on('error', function(err) {
-      throw err;
-    })
-      )
+        throw err;
+      })
+    )
     // .pipe(concat('ngcourse.js'))
     // .pipe(gulp.dest(destinationFolder))
     // .pipe(rename('ngcourse.min.js'))

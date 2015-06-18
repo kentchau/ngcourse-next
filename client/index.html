@@ -4,16 +4,14 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <script src="/bower_components/angular/angular.js"></script>
+    
     <link rel="stylesheet" type="text/css" href="/css/styles.css"/>
     <link href="http://fonts.googleapis.com/css?family=Dosis:400,600" rel="stylesheet" type="text/css">
 
-    <script src="https://github.jspm.io/jmcriffey/bower-traceur-runtime@0.0.87/traceur-runtime.js"></script>
-    <script src="https://jspm.io/system@0.16.js"></script-->
-
+    <script src="/bower_components/angular/angular.js"></script>
+    <script src="/bower_components/traceur-runtime/traceur-runtime.js"></script>
     <script src="/bower_components/es6-module-loader/dist/es6-module-loader.js"></script>
     <script src="/bower_components/system.js/dist/system.js"></script>
-
   </head>
   <body>
     <div>
@@ -21,6 +19,7 @@
         <div ui-view></div>
       </ngc-authenticator>
     </div>
+    
     <script src="/bower_components/lodash/dist/lodash.js"></script>
     <script src="/bower_components/koast-angular/dist/koast.js"></script>
     <script src="/bower_components/angular-ui-router/release/angular-ui-router.js"></script>
@@ -29,12 +28,17 @@
     <script src="/app/sections/examples/ngc-user-directive.js"></script>
     <script src="/app/sections/examples/ngc-user-directive-with-template-url.js"></script-->
     <script>
-      System.baseURL = 'http://localhost:8080/dist/';
+      System.baseURL = '/dist/';
+      System.defaultJSExtensions = true;
+
       var promise = System.import('app')
         .then(function() {
           console.log('Loaded!');
         })
-        .then(null, function(error) {console.error('Failed to load:', error)});
+        .then(null, function(error) {
+          console.error('Failed to load:', error);
+        });
+
       console.log('Promise:', promise);
     </script>
   </body>
