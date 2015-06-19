@@ -1,14 +1,15 @@
 'use strict';
 
-import {TaskListCtrl} from 'sections/task-list/task-list-controller';
-import {TaskEditCtrl} from 'sections/task-edit/task-edit-controller';
-import {TaskAddCtrl} from 'sections/task-add/task-add-controller';
 import {TasksService} from 'core/tasks/tasks-service';
 import {UsersService} from 'core/users/users-service';
 import {ServerService} from 'core/server/server-service';
 import {configureRouter, RouterService} from 'core/router/router-service';
+import {TaskListComponent} from 'components/task-list/task-list-component';
+import {TaskEditComponent} from 'components/task-edit/task-edit-component';
+import {TaskAddComponent} from 'components/task-add/task-add-component';
 import {AuthenticatorComponent} from 'components/authenticator/authenticator-component';
 import {LoginFormComponent} from 'components/login-form/login-form-component';
+
 declare var angular: any;
 
 angular.module('ngcourse.router', ['ui.router'])
@@ -31,10 +32,10 @@ angular.module('ngcourse')
 
 .directive('ngcLoginForm', LoginFormComponent)
 .directive('ngcAuthenticator', AuthenticatorComponent)
+.directive('ngcTasks', TaskListComponent)
+.directive('ngcTaskAdd', TaskAddComponent)
+.directive('ngcTaskEdit', TaskEditComponent)
 
-.controller('TaskListCtrl', TaskListCtrl)
-.controller('TaskEditCtrl', TaskEditCtrl)
-.controller('TaskAddCtrl', TaskAddCtrl)
 
 .constant('API_BASE_URL', 'http://ngcourse.herokuapp.com')
 

@@ -1,9 +1,18 @@
 import {Inject, getServices} from 'utils/di';
+import {makeComponent} from 'utils/component-maker';
+
+let template = `
+  <input ng-model="ctrl.task.owner" placeholder="Owner" /> <br/>
+  <input ng-model="ctrl.task.description" placeholder="Description"/> <br/>
+  <button ng-click="ctrl.updateTask(ctrl.task)">Update</button>
+  <button ng-click="ctrl.cancel()">Cancel</button>
+`;
 
 export class TaskEditCtrl {
   services: any;
   cancel: any;
   task: any;
+
   constructor(
     @Inject('$http') $http,
     @Inject('$log') $log,
@@ -19,9 +28,17 @@ export class TaskEditCtrl {
     this.cancel = this.services.router.goToTaskList.bind(this.services.router);
   }
 
-  updateTask (task) {
+  updateTask(task) {
     this.services.tasks.updateTask(task)
       .then(this.services.router.goToTaskList.bind(this.services.router))
       .then(null, this.services.$log.error);
   }
-}
+};
+
+export var TaskEditComponent = makeComponent(
+  template,
+  TaskEditCtrl,
+  {
+    scope: {}
+  }
+);

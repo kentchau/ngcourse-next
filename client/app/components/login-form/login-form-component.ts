@@ -29,7 +29,7 @@ let template = `
       Login
   </button>
 </form>
-`
+`;
 
 class LoginFormController {
   errorMessage: any;

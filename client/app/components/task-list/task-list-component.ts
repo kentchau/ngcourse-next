@@ -1,10 +1,33 @@
 import {Inject, getServices} from 'utils/di';
+import {makeComponent} from 'utils/component-maker';
+
+let template = `
+<div>
+  {{main.userDisplayName}}, we've got {{ctrl.tasks.length}} tasks
+  <br/>
+
+  <div ui-view="actionArea"></div>
+  <table>
+    <tr>
+      <th>Owner</th>
+      <th>Task description</th>
+    </tr>
+    <tr ng-repeat="task in ctrl.tasks">
+      <td>{{ctrl.getUserDisplayName(task.owner)}}</td>
+      <td>{{task.description}}</td>
+      <td><a ng-show="task.can.edit" ui-sref="tasks.details({_id: task._id})">edit</a>
+      </td>
+    </tr>
+  </table>
+</div>
+`;
 
 export class TaskListCtrl {
   services: any;
   tasks: any;
   addTask: any;
   getUserDisplayName: any;
+
   constructor(
     @Inject('$log') $log,
     @Inject('tasks') tasks,
@@ -29,3 +52,11 @@ export class TaskListCtrl {
 
   // get addTask() { return this.services.router.goToAddTask; }
 };
+
+export var TaskListComponent = makeComponent(
+  template,
+  TaskListCtrl,
+  {
+    scope: {}
+  }
+);

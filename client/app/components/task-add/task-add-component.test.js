@@ -1,4 +1,3 @@
-describe('TaskAddCtrl', function () {
   beforeEach(module('ngcourse'));
 
   var taskAddController;
