@@ -1,13 +1,9 @@
-# Part 4: Getting Started with the Client
+# Part 5: Getting Started with the Client
 
 This course will be organized around building a collaborative task manager. We
 will start by building a client app, which we will later connect to a REST
 API. Our first task is to setup a simple Angular app consisting of a few
-*controllers* and a few *templates*, and to understand how they fit together
-via *scopes* and the *digest cycle*. We'll be making use of common built-in
-directives such as `ng-model`, `ng-show`, `ng-hide`, `ng-cloak`, `ng-if`,
-`ng-repeat`. We will also discuss Angular’s dependency injection and the use of
-`$log` for logging.
+*components*, and to understand how they fit together. We'll be making use of common built-in directives such as `ng-model`, `ng-show`, `ng-hide`, `ng-cloak`, `ng-if`, `ng-repeat`. We will also discuss Angular’s dependency injection and the use of `$log` for logging.
 
 ## The Most Trivial Angular App
 
@@ -15,228 +11,287 @@ Let's start by setting up a really simple angular app -- so simple in fact
 that it won't do anything at all. Here is what we'll put in our HTML file.
 
 ```html
-  <!DOCTYPE html>
-  <html>
-    <head>
-
-      <script src="/bower_components/angular/angular.js"></script>
-      <link rel="stylesheet" type="text/css" href="/css/styles.css"/>
-    </head>
-    <body>
-      <div ng-app="ngcourse">
-        Hello!
-      </div>
-      <script src="/app/app.js"></script>
-    </body>
-  </html>
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/bower_components/traceur-runtime/traceur-runtime.js"></script>
+    <script src="/bower_components/es6-module-loader/dist/es6-module-loader.js"></script>
+    <script src="/bower_components/system.js/dist/system.js"></script>
+    <script src="/bower_components/angular/angular.js"></script>
+  </head>
+  <body>
+    <div>
+        Hello World!
+    </div>
+    <script>
+      System.baseURL = '/dist/';
+      System.defaultJSExtensions = true;
+      System.import('app');
+    </script>
+  </body>
+</html>
 ```
 
-We'll also need a very simple JavaScript file - our "app":
+We'll also need a very simple TypeScript file - our "app":
 
-```javascript
-  angular.module('ngcourse', []);
+```typescript
+/// <reference path="../../typings/angularjs/angular.d.ts" />
+'use strict';
+
+angular.module('ngcourse', []);
+
+angular.element(document).ready(function() {
+  angular.bootstrap(document, ['ngcourse']);
+});
 ```
 
-## A "Classic" Controller
+## Defining Components
 
-This app doesn't do anything at all. To make it do something remotely interesting we'll need to add a controller. We'll define the controller in a separate javascript file:
+This app doesn't do anything at all. To make it do something remotely interesting we'll need to define a component. 
 
-```javascript
-  angular.module('ngcourse')
+## ...But What is a Component?
 
-  .controller('MainCtrl', function($scope) {
-    $scope.username = 'alice';
-    $scope.numberOfTasks = 0;
-  });
+Component is an object that structures and represents a UI element. It consists of two parts, component **controller** and component **template**.
+
+With that in mind let's define a basic component in a separate typescript file:
+
+```typescript
+  import {makeComponent} from 'utils/component-maker';
+
+  const template = `
+    <div>
+      <span>
+        Hello, {{ ctrl.username }}!
+        You've got {{ ctrl.numberOfTasks }} tasks.
+      </span>
+    </div>
+  `;
+
+  class MainCtrl {
+    username: any;
+    numberOfTasks: any;
+
+    constructor() { 
+      this.username = 'alice';
+      this.numberOfTasks = 0;
+    }
+  };
+
+  export var MainComponent = makeComponent(
+    template,
+    MainCtrl,
+    {}
+  );
 ```
 
-We already saw this code in Part 2, so we recognize JavaScript's "fluent"
-chaining style and the use of a function expression in the second argument to
-`controller()`.
+### Component Template
+The template of a component is just an HTML snippet defining a view that represent this component. Templates have access to any properties or functions defined on the component's controller.
 
-Note the way `angular.module()` is invoked in these two files.  Let's make sure
-we understand the difference.
+### Component Controller
+The component controller is just an ES6 class that backs component's view represented by a template. The template above binds the `username` and 
+`numberOfTasks` properties defined on the `MainCtrl` controller class using the `{{ ctrl.username }}` and `{{ ctrl.numberOfTasks }}`, refered to as the double-mustache syntax.
 
-We can now attach the controller to an element and start using the content of its scope:
+## Using Components in your Angular 1.x Application
+
+In the previous section we learned how to define a component, now we need to use this component within our Angular 1.x application context.
+
+Lets change our *app.ts* and let Angular know about our component via the `.directive()` function.
+
+```typescript
+...
+angular.module('ngcourse', [])
+  .directive('ngcMain', MainComponent);
+
+angular.element(document).ready(function() {
+  angular.bootstrap(document, ['ngcourse']);
+});
+```
+
+We can now use this component in our *index.html* as follows:
 
 ```html
   <body>
-    <div ng-app="ngcourse">
-      <div ng-controller="MainCtrl">
-        Hello, {{username}}!
-        You've got {{numberOfTasks}} tasks.
-      </div>
-    </div>
-    <script src="/app/app.js"></script>
-    <script src="/app/components/main/main-controller.js"></script>
+    <ngc-main></ngc-main>
+    ...
   </body>
 ```
 
-Note the directory structure and the file name conventions that we are using.
+Note that we used "camelCase" when we defined this component in our Angular application, but we used hyphens when inserting them into the HTML.
 
-## Handling Events
+Angular will figure out that `<ngc-main></ngc-main>` refers to the component that we defined as "ngcUser".
 
-If we put functions onto the controller's scope, we can attach those functions to DOM events.
+## Handling Events with Components
 
-Adding a function:
+If we put functions onto the component's scope, we can attach those functions to DOM events.
 
-```javascript
-  .controller('MainCtrl', function($scope) {
-    $scope.username = 'alice';
-    $scope.numberOfTasks = 0;
-    $scope.addTask = function() {
-      $scope.numberOfTasks += 1;
-    };
-  });
+Let's add a `addTask()` function to our `MainCtrl` class:
+
+```typescript
+  ...
+  class MainCtrl {
+
+    ...
+
+    addTask() {
+      this.numberOfTasks += 1;
+    }
+  };
+  ...
 ```
 
-Attaching it to an event:
+We need to modify our component's template and add a button element with an `addTask()` function attached to it's click event:
 
 ```html
-  <div ng-controller="MainCtrl">
-    Hello, {{username}}!
-    You've got {{numberOfTasks}} tasks.<br/>
-    <button ng-click="addTask()">Add task</button>
+  <div>
+    <span>
+      Hello, {{ ctrl.username }}!
+      You've got {{ ctrl.numberOfTasks }} tasks.
+      <button ng-click="ctrl.addTask()">Add task</button>
+    </span>
   </div>
 ```
-
-## Debugging 1: JSHint
-
-Use JSHint to catch simple mistakes in your code. From the command line:
-
-```bash
-  gulp lint
-```
-
-Or configure your editor to run JSHint for you.
-
-Once you are running JSHint, it will tell you about some of the other things
-you should be doing, such as using 'use strict'.
-
-## Debugging 2: $log
-
-```javascript
-  .controller('MainCtrl', function($scope, $log) {
-    $scope.username = 'alice';
-    $scope.numberOfTasks = 0;
-    $scope.addTask = function() {
-      $log.debug('Current number of tasks:', $scope.numberOfTasks);
-      $scope.numberOfTasks += 1;
-    };
-  });
-```
-
-## Debugging 3: Debugger
-
-```javascript
-  .controller('MainCtrl', function($scope, $log) {
-    $scope.username = 'alice';
-    $scope.numberOfTasks = 0;
-    $scope.addTask = function() {
-      debugger
-      $log.debug('Current number of tasks:', $scope.numberOfTasks);
-      $scope.numberOfTasks += 1;
-    };
-  });
-```
-
-## Debugging 4: Using the Console
-
-Accessing an element's scope. Inspect the element in Chrome, and $scope will be set in the console. For this to work, ensure that the Angular Batarang extension is enabled in chrome.
-
-```javascript
-  $scope.numberOfTasks = 42;  // angular.element($0).scope();
-  $scope.$apply();
-```
-
-We'll talk a bit more about `$apply` later, but for now let's just note that
-you will *very rarely* need to use it yourself.
 
 ## A Look at Dependency Injection (DI)
 
+Dependency Injection (DI) is a design pattern that allows software components to get references to their dependencies. DI allows to structure software in a way where components are decoupled from each other. This results in modular software structure with independent components which are much more unit-test friendly.
+
+### Injecting Dependencies into Components
+
+Let's start with injecting Angular's `$log` service into our component
+
 This:
 
-```javascript
-  .controller('MainCtrl', function($scope, $log) {
-    $log.debug('Hello');
-  });
-```
+```typescript
+  ...
+  class MainCtrl {
+    $log: any;
+    ...
 
-ends up being equivalent to this:
-
-```javascript
-  .controller('MainCtrl', function($log, $scope) {
-    $log.debug('Hello');
-  });
-```
-
-And this won't work at all:
-
-```javascript
-  .controller('MainCtrl', function(myScope, myLog) {
-    myLog.debug('Hello');
-  });
-```
-
-How come? The magic of Function.toString()!
-
-DI "annotation":
-
-```javascript
-  .controller('MainCtrl', ['$scope', '$log',
-    function($scope, $log) {
-      $log.debug('Hello');
+    constructor( $log ) { 
+      this.$log = $log;
+      ...
     }
-  ]);
-```
 
-In which case you can rename the variables. (Don't do this!)
-
-```javascript
-  .controller('MainCtrl', ['$scope', '$log',
-    function(x, y) {
-      y.debug('Hello');
+    addTask() {
+      this.$log.debug('Current number of tasks:', this.numberOfTasks);
+      this.numberOfTasks += 1;
     }
-  ]);
+  };
+  MainCtrl.$inject = ['$log'];
+  ...
 ```
 
-This used to be needed due to minification. Can now be handled with the
-`ng-annotate` plugin for Gulp.
+In the code above we are injecting a `$log` service into our component by adding `$inject` property to it's controller class. The reference to `$log` is available in the constructor where we are storing  it in a `this.$log` variable for access within the scope of the class.
 
-## Two-Way Binding with ng-model
+### Injecting Multiple Dependencies
 
-We can also control a scope's value from the HTML:
+This:
+
+```typescript
+  ...
+  class MainCtrl {
+    ...
+    constructor($log, $scope) { 
+    ...
+  };
+  MainCtrl.$inject = ['$log', '$scope'];
+  ...
+```
+
+is equivalent to this (Don't do this!):
+
+```typescript
+  ...
+  class MainCtrl {
+    ...
+    constructor($a, $b) { 
+    ...
+  };
+  MainCtrl.$inject = ['$log', '$scope'];
+  ...
+```
+
+But this:
+
+```typescript
+  ...
+  class MainCtrl {
+    ...
+    constructor($scope, $log) { 
+    ...
+  };
+  MainCtrl.$inject = ['$log', '$scope'];
+  ...
+```
+
+Will not work at all. 
+
+In short, the order of parameters in the `$inject` property relative to the class constructor is important.
+
+### Utility Method for Dependency Injection
+
+To simplify DI within our code we can use a provided utility function in `utils/di.ts` file as follows:
+
+```typescript
+  ...
+  class MainCtrl {
+    $log: any;
+    ...
+
+    constructor(@Inject('$log') $log) { 
+      this.$log = $log;
+      ...
+    }
+
+    addTask() {
+      this.$log.debug('Current number of tasks:', this.numberOfTasks);
+      this.numberOfTasks += 1;
+    }
+  };
+  ...
+```
+
+## Two-Way Binding with `ng-model`
+
+We can also control our component's property value from within the HTML.
+Modify the template of of our component to include the following:
 
 ```html
-  <div ng-controller="MainCtrl">
-    Enter username: <input ng-model="username"/><br/>
+  <div>
+    Enter username: <input ng-model="ctrl.username"/>
     <br/>
-    Hello, {{username}}!
-    You've got {{numberOfTasks}} tasks
-    {{ username }} has {{numberOfTasks}} tasks.<br/>
-    <button ng-click="addTask()">Add task</button>
+    <span>
+      Hello, {{ ctrl.username }}!
+      You've got {{ ctrl.numberOfTasks }} tasks.
+      <button ng-click="ctrl.addTask()">Add task</button>
+    </span>
   </div>
 ```
 
-However: "ng-model" is a misnomer. Do not rely on controller's scope as your
-"model"!
+In the above example, the `ng-model` directive bi-directionaly binds an element to our component controller's property. Note that if the property does not exist on the controller, it will be created.
 
-## Adding "Watchers"
+## Adding "Watchers" (Do we still need this?)
 
-Our controller can get alerted if the value on the scope changes:
+Our controller can get alerted if the value on the component controller's scope changes:
 
-```javascript
-  .controller('MainCtrl', function($scope, $log) {
-    $scope.username = 'alice';
-    $scope.numberOfTasks = 0;
-    $scope.addTask = function() {
-      $log.debug('Current number of tasks:', $scope.numberOfTasks);
-      $scope.numberOfTasks += 1;
-    };
-    $scope.$watch('username', function(newValue, oldValue) {
-      $log.info(newValue, oldValue);
+```typescript
+class MainCtrl {
+  $log: any;
+  $scope: any;
+  ...
+  constructor(
+    @Inject('$log') $log, 
+    @Inject('$scope') $scope
+  ) { 
+    this.$log = $log;
+    this.$scope = $scope;
+    ...
+    this.$scope.$watch('ctrl.username', (newValue, oldValue) => {
+      this.$log.info(newValue, oldValue);
     });
-  });
+  }
+  ...
+};
 ```
 
 However: *this is rarely useful*. We'll see better ways of handling such
@@ -244,96 +299,152 @@ things.
 
 ## Implementing "Login"
 
-Let's add HTML to hide the login form upon login.
+Let's modify our component's template to hide the login form upon login and show the task counter.
 
 ```html
-  <div ng-controller="MainCtrl">
-    <div ng-hide="isAuthenticated">
-      Enter username: <input ng-model="username"/><br/>
-      Password: <input type="password" ng-model="password"/><br/>
-      <button ng-click="login()">Login</button>
+  <div>
+    <div ng-hide="ctrl.isAuthenticated">
+      Enter username: <input ng-model="ctrl.username"/><br/>
+      Password: <input type="password" ng-model="ctrl.password"/><br/>
+      <button ng-click="ctrl.login()">Login</button>
     </div>
-    <div ng-show="isAuthenticated">
-      Hello, {{username}}!
-      You've got {{numberOfTasks}} tasks<br/>
-      <button ng-click="addTask()">Add task</button>
+    <div ng-show="ctrl.isAuthenticated">
+      Hello, {{ ctrl.username }}!
+      You've got {{ ctrl.numberOfTasks }} tasks<br/>
+      <button ng-click="ctrl.addTask()">Add task</button>
     </div>
   </div>
 ```
 
-We'll need the following in the controller:
+We'll also need to modify our component's controller as follows:
 
-```javascript
-  .controller('MainCtrl', function($scope, $log) {
-    $scope.isAuthenticated = false;
-    $scope.numberOfTasks = 0;
-    $scope.login = function() {
-      $scope.isAuthenticated = true;
-    };
-    $scope.addTask = function() {
-      $scope.numberOfTasks += 1;
-    };
+```typescript
+  class MainCtrl {
+    $log: any;
+    isAuthenticated: any;
+    numberOfTasks: any;
+
+    constructor( @Inject('$log') $log ) { 
+      this.$log = $log;
+      this.numberOfTasks = 0;
+      this.isAuthenticated = false;
+    }
+
+    login() {
+      this.isAuthenticated = true;
+    }
+
+    addTask() {
+      this.$log.debug('Current number of tasks:', this.numberOfTasks);
+      this.numberOfTasks += 1;
+    }
+
+  };
+```
+
+## Splitting Up the Components
+
+By this point our component is getting unweildy. Let's split it into two separate components. 
+
+1. The first component will be located in `components/task-list/task-list-component.ts` and will implement our simple task counter.
+
+```typescript
+  import {Inject} from 'utils/di';
+  import {makeComponent} from 'utils/component-maker';
+
+  let template = `
+    Hello, {{ ctrl.username }}!
+    You've got {{ ctrl.numberOfTasks }} tasks<br/>
+    <button ng-click="ctrl.addTask()">Add task</button>
+  `;
+
+  export class TaskListCtrl {
+    $log: any;
+    numberOfTasks: any;
+
+    constructor( @Inject('$log') $log ) {
+      this.$log = $log;
+      this.numberOfTasks = 0;
+    }
+
+    addTask() {
+      this.$log.debug('Current number of tasks:', this.numberOfTasks);
+      this.numberOfTasks += 1;
+    }
+
+  };
+
+  export var TaskListComponent = makeComponent(
+    template,
+    TaskListCtrl,
+    {
+      scope: {}
+    }
+  );
+```
+
+2. The second component will be located at `components/main/main-component.ts` and will be responsible for user authentication. 
+
+```typescript
+  import {makeComponent} from 'utils/component-maker';
+  import {Inject} from 'utils/di';
+
+  const template = `
+    <div>
+      <div ng-hide="ctrl.isAuthenticated">
+        Enter username: <input ng-model="ctrl.username"/><br/>
+        Password: <input type="password" ng-model="ctrl.password"/><br/>
+        <button ng-click="ctrl.login()">Login</button>
+      </div>
+      <div ng-show="ctrl.isAuthenticated">
+        <ngc-task-list></ngc-task-list>
+      </div>
+    </div>
+  `;
+
+  class MainCtrl {
+    $log: any;
+    isAuthenticated: any;
+
+    constructor( @Inject('$log') $log ) { 
+      this.$log = $log;
+      this.isAuthenticated = false;
+    }
+
+    login() {
+      this.isAuthenticated = true;
+    }
+
+  };
+
+  export var MainComponent = makeComponent(
+    template,
+    MainCtrl,
+    {}
+  );
+```
+
+The last thing remaining is to wire up our new component within Angular application context.
+
+```typescript
+  ...
+  import {MainComponent} from 'components/main/main-component';
+  import {TaskListComponent} from 'components/task-list/task-list-component';
+
+  angular.module('ngcourse', [])
+    .directive('ngcMain', MainComponent)
+    .directive('ngcTaskList', TaskListComponent);
+
+  angular.element(document).ready(function() {
+    angular.bootstrap(document, ['ngcourse']);
   });
 ```
 
-## Splitting Up the Controllers
+## Application Structure with Components
 
-This controller is getting unweildy. Let's split it into two. Our HTML:
+A useuful way of conceptualizing Angular application design is to look at it as a tree of nested components each having an isolated scope. 
 
-```html
-  <div ng-controller="MainCtrl">
-    <div ng-hide="isAuthenticated">
-      Enter username: <input ng-model="username"/><br/>
-      Password: <input type="password" ng-model="password"/><br/>
-      <button ng-click="login()">Login</button>
-    </div>
-
-    <div ng-show="isAuthenticated">
-      Hello, {{username}}! {{numberOfTasks || 'No tasks'}}
-    </div>
-
-    <div ng-show="isAuthenticated" ng-controller="TaskListCtrl">
-      {{username}}, you've got {{numberOfTasks}} tasks<br/>
-      <button ng-click="addTask()">Add task</button>
-    </div>
-  </div>
-```
-
-And *two* JavaScript files!
-
-In `client/app/components/main/main-controller.js`:
-
-```javascript
-  'use strict';
-
-  angular.module('ngcourse')
-
-  .controller('MainCtrl', function($scope, $log) {
-    $scope.isAuthenticated = false;
-    $scope.login = function() {
-      $scope.isAuthenticated = true;
-    };
-  });
-```
-
-In `client/app/sections/task-list/task-list-controller.js`:
-
-```javascript
-  'use strict';
-
-  angular.module('ngcourse')
-
-  .controller('TaskListCtrl', function($scope, $log) {
-    $scope.numberOfTasks = 0;
-    $scope.addTask = function() {
-      $scope.numberOfTasks += 1;
-    };
-  });
-```
-
-## Oddities
-
-Let's observe some inheritance oddities.
+Let's try adding another `<ngc-task-list></ngc-task-list>` element to the template of a component we defined in `components/main/main-component.ts` and observe what happens in the browser.
 
 ## Broadcasting and Catching Events.
 
