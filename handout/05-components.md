@@ -53,7 +53,7 @@ This app doesn't do anything at all. To make it do something remotely interestin
 
 Component is an object that structures and represents a UI element. It consists of two parts, component **controller** and component **template**.
 
-With that in mind let's define a basic component in a separate typescript file:
+With that in mind let's define a basic component in a separate typescript file in *components/main/main-component.ts*:
 
 ```typescript
   import {makeComponent} from 'utils/component-maker';
@@ -118,7 +118,7 @@ We can now use this component in our *index.html* as follows:
 
 Note that we used "camelCase" when we defined this component in our Angular application, but we used hyphens when inserting them into the HTML.
 
-Angular will figure out that `<ngc-main></ngc-main>` refers to the component that we defined as "ngcUser".
+Angular will figure out that `<ngc-main></ngc-main>` refers to the component that we defined as "ngcMain".
 
 ## Handling Events with Components
 
@@ -157,9 +157,7 @@ Dependency Injection (DI) is a design pattern that allows software components to
 
 ### Injecting Dependencies into Components
 
-Let's start with injecting Angular's `$log` service into our component
-
-This:
+Let's start with injecting Angular's `$log` service into our component:
 
 ```typescript
   ...
@@ -230,7 +228,7 @@ In short, the order of parameters in the `$inject` property relative to the clas
 
 ### Utility Method for Dependency Injection
 
-To simplify DI within our code we can use a provided utility function in `utils/di.ts` file as follows:
+To simplify DI within our code we can use a utility function provided in `utils/di.ts` file as follows:
 
 ```typescript
   ...
@@ -269,33 +267,6 @@ Modify the template of of our component to include the following:
 ```
 
 In the above example, the `ng-model` directive bi-directionaly binds an element to our component controller's property. Note that if the property does not exist on the controller, it will be created.
-
-## Adding "Watchers" (Do we still need this?)
-
-Our controller can get alerted if the value on the component controller's scope changes:
-
-```typescript
-class MainCtrl {
-  $log: any;
-  $scope: any;
-  ...
-  constructor(
-    @Inject('$log') $log, 
-    @Inject('$scope') $scope
-  ) { 
-    this.$log = $log;
-    this.$scope = $scope;
-    ...
-    this.$scope.$watch('ctrl.username', (newValue, oldValue) => {
-      this.$log.info(newValue, oldValue);
-    });
-  }
-  ...
-};
-```
-
-However: *this is rarely useful*. We'll see better ways of handling such
-things.
 
 ## Implementing "Login"
 
@@ -346,7 +317,7 @@ We'll also need to modify our component's controller as follows:
 
 By this point our component is getting unweildy. Let's split it into two separate components. 
 
-1. The first component will be located in `components/task-list/task-list-component.ts` and will implement our simple task counter.
+The first component will be located in `components/task-list/task-list-component.ts` and will implement our simple task counter.
 
 ```typescript
   import {Inject} from 'utils/di';
@@ -383,7 +354,7 @@ By this point our component is getting unweildy. Let's split it into two separat
   );
 ```
 
-2. The second component will be located at `components/main/main-component.ts` and will be responsible for user authentication. 
+The second component will be located at `components/main/main-component.ts` and will be responsible for user authentication. 
 
 ```typescript
   import {makeComponent} from 'utils/component-maker';
@@ -444,7 +415,201 @@ The last thing remaining is to wire up our new component within Angular applicat
 
 A useuful way of conceptualizing Angular application design is to look at it as a tree of nested components each having an isolated scope. 
 
-Let's try adding another `<ngc-task-list></ngc-task-list>` element to the template of a component we defined in `components/main/main-component.ts` and observe what happens in the browser.
+Let's try adding another `<ngc-task-list></ngc-task-list>` element to the template of a component we defined in *components/main/main-component.ts* and observe what happens in the browser.
+
+## Component Communication
+
+In general, component communication is better achieved via services and/or publish/subscribe methods. Those approached will be covered in detail in the upcoming sections and for now we will take a direct approach.
+
+### Passing Data Between Components
+
+We have introduce a bug during our re-factoring, the username is not displayed when  `TaskListComponent` is shown. Let's modify *task-list-component.ts* and fix it:
+
+```typescript
+  ...
+  export var TaskListComponent = makeComponent(
+    template,
+    TaskListCtrl,
+    {
+      scope: {
+        username: '=username'
+      }
+    }
+  );
+```
+
+and in *main-component.ts* let's change our template as follows:
+
+```html
+  ...
+  <ngc-task-list username="ctrl.username"></ngc-task-list>
+  ...
+```
+
+Now the `username` property is passed from `MainComponent` to `TaskListComponent`.
+
+### Responding to Component Events
+
+Let's restructure our code further and create a new component to handle the login form for us. We will put this component in a new file *components/login-form/login-form-component.ts*:
+
+```typescript
+  import {makeComponent} from 'utils/component-maker';
+
+  let template = `
+    Enter username: <input ng-model="ctrl.username"/><br/>
+    Password: <input type="password" ng-model="ctrl.password"/><br/>
+    <button ng-click="ctrl.login()">Login</button>
+  `;
+
+  class LoginFormController {
+    username: any;
+    password: any;
+    onSubmit: Function;
+
+    constructor() { 
+      this.username = "";
+      this.password = "";
+    }
+
+    login() {
+      var data = {
+        username: this.username,
+        authenticated: true
+      };
+      
+      this.onSubmit({data});
+    }
+  }
+
+  export var LoginFormComponent = makeComponent(
+    template,
+    LoginFormController,
+    {
+      scope: {}
+    }
+  );
+```
+
+Let's change *main-component.ts* to accomodate this change:
+
+```typescript
+  ...
+  const template = `
+    <div>
+      <div ng-hide="ctrl.isAuthenticated">
+        <ngc-login-form on-submit="ctrl.loginHandler(data)"></ngc-login-form>
+      </div>
+      <div ng-show="ctrl.isAuthenticated">
+        <ngc-task-list username="ctrl.username"></ngc-task-list>
+      </div>
+    </div>
+  `;
+
+  class MainCtrl {
+    $log: any;
+    isAuthenticated: any;
+    username: any;
+
+    constructor( @Inject('$log') $log ) { 
+      this.$log = $log;
+      this.isAuthenticated = false;
+    }
+
+    loginHandler(data) {
+      this.isAuthenticated = data.authenticated;
+      this.username = data.username;
+    }
+
+  };
+  ...
+```
+
+The reponsibility of our `MainComponent` has changed after re-factoring. Let's rename it to `AuthenticationComponent`, it's controller class to `AuthenticationCtrl` and the selector in *app.ts* to `ngcAuthenticator`.
+
+## Iteration with `ng-repeat`
+
+When we have a list of items, we can use `ng-repeat` within our component's template to create identical DOM for each item.
+
+Let's modify the temaplate in *task-list-component.ts*
+
+```html
+  Hello, {{ ctrl.username }}!
+  You've got {{ ctrl.tasks.length }} tasks<br/>
+  <button ng-click="ctrl.addTask()">Add task</button>
+
+  <table>
+    <tr>
+      <th>Owner</th>
+      <th>Task description</th>
+    </tr>
+    <tr ng-repeat="task in ctrl.tasks">
+      <td>{{task.owner}}</td>
+      <td>{{task.description}}</td>
+    </tr>
+  </table>
+```
+
+In the TaskListCtrl all we do is set `tasks` to an array:
+
+```typescript
+export class TaskListCtrl {
+  $log: any;
+  tasks: any;
+
+  constructor( @Inject('$log') $log ) {
+    this.$log = $log;
+
+    this.tasks = [
+      {
+        owner: 'alice',
+        description: 'Build the dog shed.'
+      },
+      {
+        owner: 'bob',
+        description: 'Get the milk.'
+      },
+      {
+        owner: 'alice',
+        description: 'Fix the door handle.'
+      }
+    ];
+  }
+
+  addTask() { }
+
+};
+```
+
+Note that in the template of this component we also change `{{ ctrl.numberOfTasks }}` to `{{ ctrl.tasks.length }}`.
+
+## Transclusion with `ng-transclude`
+
+## Adding "Watchers" (Do we still need this?)
+
+Our controller can get alerted if the value on the component controller's scope changes:
+
+```typescript
+class MainCtrl {
+  $log: any;
+  $scope: any;
+  ...
+  constructor(
+    @Inject('$log') $log, 
+    @Inject('$scope') $scope
+  ) { 
+    this.$log = $log;
+    this.$scope = $scope;
+    ...
+    this.$scope.$watch('ctrl.username', (newValue, oldValue) => {
+      this.$log.info(newValue, oldValue);
+    });
+  }
+  ...
+};
+```
+
+However: *this is rarely useful*. We'll see better ways of handling such
+things.
 
 ## Broadcasting and Catching Events.
 
@@ -616,53 +781,6 @@ Note that $scope is still injectable!
 ```
 
 Consider not using $scope, though.
-
-## How Do Our Controllers Communicate Now?
-
-How do we get data from one controller's scope into the others. One possibility:
-
-```html
-  <button ng-click="main.login(loginForm.username, loginForm.password)">Login</button>
-```
-
-But we'll see a better approach shortly.
-
-## Iteration
-
-When we have a list of items, we use `ng-repeat` to create identical DOM for
-each item.
-
-```html
-  <table>
-    <tr>
-      <th>Owner</th>
-      <th>Task description</th>
-    </tr>
-    <tr ng-repeat="task in taskList.tasks">
-      <td>{{task.owner}}</td>
-      <td>{{task.description}}</td>
-    </tr>
-  </table>
-```
-
-In the controller all we do is set `tasks` to an array:
-
-```javascript
-  vm.tasks = [
-    {
-      owner: 'alice',
-      description: 'Build the dog shed.'
-    },
-    {
-      owner: 'bob',
-      description: 'Get the milk.'
-    },
-    {
-      owner: 'alice',
-      description: 'Fix the door handle.'
-    }
-  ];
-```
 
 ## Next Steps
 
